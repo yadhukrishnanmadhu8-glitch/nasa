@@ -38,6 +38,18 @@
     "p95_deg": 12.272913248692971,
     "max_deg": 40.40759864663991
   },
+  "swim": {
+    "dtype": "uint8",
+    "vmin": -1.0,
+    "vmax": 1.0,
+    "nodata": 255,
+    "layers": [
+      "0-1m",
+      "1-5m",
+      "5m+"
+    ],
+    "note": "0..254 maps linearly to vmin..vmax (ice consistency: +1 consistent with ice, 0 no indication, -1 inconsistent)"
+  },
   "sources": [
     {
       "layer": "Elevation",
@@ -45,6 +57,13 @@
       "citation": "Fergason, R. L., Hare, T. M., & Laura, J. (2018). HRSC and MOLA Blended Digital Elevation Model at 200m v2. Astrogeology PDS Annex, U.S. Geological Survey.",
       "url": "https://astrogeology.usgs.gov/search/map/mars_mgs_mola_mex_hrsc_blended_dem_global_200m",
       "license": "MOLA: CC0; HRSC: CC BY-SA 3.0 IGO"
+    },
+    {
+      "layer": "Subsurface water-ice",
+      "name": "SWIM 2.0 ice-consistency maps",
+      "citation": "Mars Subsurface Water Ice Mapping (SWIM) project, Planetary Science Institute; see https://doi.org/10.1038/s41550-020-01290-z",
+      "url": "https://swim.psi.edu/SWIM2Products.php",
+      "license": "see SWIM project terms"
     },
     {
       "layer": "Craters",

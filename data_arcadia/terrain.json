@@ -1,8 +1,8 @@
 {
   "region": "Utopia Planitia",
   "center": {
-    "lat": 39.5,
-    "lon": 172.0
+    "lat": 47.2,
+    "lon": -175.7
   },
   "width": 1000,
   "height": 1000,
@@ -18,10 +18,10 @@
     ]
   },
   "bounds_deg": {
-    "lat_min": 37.81462657467429,
-    "lat_max": 41.18537342532571,
-    "lon_min": 169.76054821194708,
-    "lon_max": 174.23945178805292
+    "lat_min": 45.514626574674296,
+    "lat_max": 48.88537342532571,
+    "lon_min": -178.26304209175137,
+    "lon_max": -173.1369579082486
   },
   "radius_m": 3396190.0,
   "projection": "local sinusoidal: x = R*dLon*cos(lat), y = R*dLat (metres from centre; inverse: lat = lat0 + y/R, lon = lon0 + x/(R*cos(lat)))",
@@ -30,13 +30,25 @@
     "dtype": "int16-le",
     "units": "m",
     "nodata": -32768,
-    "min": -4053.0,
-    "max": -3208.478045156605
+    "min": -4133.0,
+    "max": -3866.115417967173
   },
   "slope_stats_at_res": {
-    "mean_deg": 0.724768109005708,
-    "p95_deg": 2.904104501220863,
-    "max_deg": 17.919209156944156
+    "mean_deg": 0.2567541935024416,
+    "p95_deg": 0.6354479200268877,
+    "max_deg": 10.847957981094906
+  },
+  "swim": {
+    "dtype": "uint8",
+    "vmin": -1.0,
+    "vmax": 1.0,
+    "nodata": 255,
+    "layers": [
+      "0-1m",
+      "1-5m",
+      "5m+"
+    ],
+    "note": "0..254 maps linearly to vmin..vmax (ice consistency: +1 consistent with ice, 0 no indication, -1 inconsistent)"
   },
   "sources": [
     {
@@ -47,6 +59,13 @@
       "license": "MOLA: CC0; HRSC: CC BY-SA 3.0 IGO"
     },
     {
+      "layer": "Subsurface water-ice",
+      "name": "SWIM 2.0 ice-consistency maps",
+      "citation": "Mars Subsurface Water Ice Mapping (SWIM) project, Planetary Science Institute; see https://doi.org/10.1038/s41550-020-01290-z",
+      "url": "https://swim.psi.edu/SWIM2Products.php",
+      "license": "see SWIM project terms"
+    },
+    {
       "layer": "Craters",
       "name": "Robbins & Hynek global Mars crater database",
       "citation": "Robbins, S. J., & Hynek, B. M. (2012). A new global database of Mars impact craters >= 1 km. J. Geophys. Res. Planets, 117(E5). https://doi.org/10.1029/2011JE003966",
@@ -54,5 +73,5 @@
       "license": "see USGS Astrogeology terms"
     }
   ],
-  "crater_count": 59
+  "crater_count": 8
 }
