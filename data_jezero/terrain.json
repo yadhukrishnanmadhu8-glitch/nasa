@@ -1,0 +1,58 @@
+{
+  "region": "Utopia Planitia",
+  "center": {
+    "lat": 18.38,
+    "lon": 77.57999999999998
+  },
+  "width": 1000,
+  "height": 1000,
+  "res_m": 200.0,
+  "extent_m": {
+    "x": [
+      -99900.0,
+      99900.0
+    ],
+    "y": [
+      -99900.0,
+      99900.0
+    ]
+  },
+  "bounds_deg": {
+    "lat_min": 16.694626574674288,
+    "lat_max": 20.06537342532571,
+    "lon_min": 75.78571675879239,
+    "lon_max": 79.37428324120758
+  },
+  "radius_m": 3396190.0,
+  "projection": "local sinusoidal: x = R*dLon*cos(lat), y = R*dLat (metres from centre; inverse: lat = lat0 + y/R, lon = lon0 + x/(R*cos(lat)))",
+  "layout": "row-major, row 0 = north, col 0 = west",
+  "elevation": {
+    "dtype": "int16-le",
+    "units": "m",
+    "nodata": -32768,
+    "min": -4278.511931049258,
+    "max": 264.4724600281371
+  },
+  "slope_stats_at_res": {
+    "mean_deg": 4.454687526430764,
+    "p95_deg": 12.272913248692971,
+    "max_deg": 40.40759864663991
+  },
+  "sources": [
+    {
+      "layer": "Elevation",
+      "name": "MOLA-HRSC blended DEM, 200 m, v2",
+      "citation": "Fergason, R. L., Hare, T. M., & Laura, J. (2018). HRSC and MOLA Blended Digital Elevation Model at 200m v2. Astrogeology PDS Annex, U.S. Geological Survey.",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_mgs_mola_mex_hrsc_blended_dem_global_200m",
+      "license": "MOLA: CC0; HRSC: CC BY-SA 3.0 IGO"
+    },
+    {
+      "layer": "Craters",
+      "name": "Robbins & Hynek global Mars crater database",
+      "citation": "Robbins, S. J., & Hynek, B. M. (2012). A new global database of Mars impact craters >= 1 km. J. Geophys. Res. Planets, 117(E5). https://doi.org/10.1029/2011JE003966",
+      "url": "https://astrogeology.usgs.gov/pygeoapi/collections/mars/robbinsv1",
+      "license": "see USGS Astrogeology terms"
+    }
+  ],
+  "crater_count": 87
+}

@@ -1,0 +1,57 @@
+{
+  "region": "Utopia Planitia",
+  "center": {
+    "lat": 25.1,
+    "lon": 109.9
+  },
+  "width": 1000,
+  "height": 1000,
+  "res_m": 200.0,
+  "elevation": {
+    "dtype": "int16-le",
+    "units": "m",
+    "nodata": -32768,
+    "min": -5140.564396321614,
+    "max": -3624.9415333072393
+  },
+  "slope_stats_at_res": {
+    "mean_deg": 0.47071793543216156,
+    "p95_deg": 0.9989563476137926,
+    "max_deg": 34.55510058426525
+  },
+  "swim": {
+    "dtype": "uint8",
+    "vmin": -1.0,
+    "vmax": 1.0,
+    "nodata": 255,
+    "layers": [
+      "0-1m",
+      "1-5m",
+      "5m+"
+    ]
+  },
+  "sources": [
+    {
+      "layer": "Elevation",
+      "name": "MOLA-HRSC blended DEM, 200 m, v2",
+      "citation": "Fergason et al. (2018)",
+      "url": "https://astrogeology.usgs.gov",
+      "license": "CC0"
+    },
+    {
+      "layer": "Subsurface water-ice",
+      "name": "SWIM 2.0 ice-consistency maps",
+      "citation": "SWIM Project",
+      "url": "https://swim.psi.edu",
+      "license": "SWIM terms"
+    },
+    {
+      "layer": "Craters",
+      "name": "Robbins & Hynek crater database",
+      "citation": "Robbins & Hynek (2012)",
+      "url": "https://astrogeology.usgs.gov",
+      "license": "USGS terms"
+    }
+  ],
+  "crater_count": 74
+}

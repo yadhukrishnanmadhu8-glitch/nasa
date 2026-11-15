@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AresNav · Mars EVA planner</title>
+<style>
+:root{--bg:#1c1713;--panel:#262019;--line:#3b3228;--ink:#eadfcf;--dim:#a89a86;--ice:#7fd4e8;--warn:#e9b44c;--bad:#e5533d}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:13px/1.45 Bahnschrift,"Segoe UI",system-ui,sans-serif;display:grid;grid-template-columns:1fr 350px;grid-template-rows:auto 1fr}
+header{grid-column:1/3;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand b{font-size:18px;letter-spacing:.04em;color:var(--ice);margin-right:10px}.brand span{color:var(--dim)}
+.seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{background:none;border:0;border-right:1px solid var(--line);color:var(--ink);padding:6px 12px;font:inherit;cursor:pointer}
+.seg button:last-child{border-right:0}.seg button.on{background:var(--ice);color:#14232a}.seg button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ice);outline-offset:1px}
+#tools.off{opacity:.35;pointer-events:none}
+main{position:relative;min-height:0}canvas#map{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#tip,#hov{position:absolute;background:rgba(28,23,19,.85);padding:4px 9px;border-radius:4px;pointer-events:none}#tip{left:12px;top:10px}#hov{right:12px;bottom:10px;color:var(--dim)}
+aside{overflow:auto;border-left:1px solid var(--line);background:var(--panel);padding:4px 14px 20px}
+section{padding:12px 0;border-bottom:1px solid var(--line)}section:last-child{border:0}
+h2{font-size:13px;margin:0 0 8px;color:var(--ice);font-weight:600}
+label{display:block;margin:3px 0}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:6px 0}
+input[type=number],select{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:2px 5px;font:inherit;width:62px}select{width:auto}
+dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0}dt{color:var(--dim)}dd{margin:0;font-variant-numeric:tabular-nums}
+.dim,.note{color:var(--dim)}.note{font-size:12px;margin:8px 0 0}ul{padding-left:16px;margin:0}li{margin:0 0 7px}
+canvas#prof{width:100%;height:104px;margin-top:8px;display:block}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.lk{background:none;border:0;color:var(--ice);font:inherit;text-align:left;cursor:pointer;padding:2px 0;text-decoration:underline}
+.warn{border-left:3px solid var(--bad);padding-left:8px}ol{padding-left:18px;margin:6px 0}input[type=range]{width:100%;accent-color:var(--ice)}header label{margin:0}
+@media(max-width:820px){body{grid-template-columns:1fr;grid-template-rows:auto 62vh auto;height:auto}header{grid-column:1}aside{border-left:0}}
+</style></head><body>
+<header>
+ <div class="brand"><b>AresNav</b><span>Mars EVA traverse planner · prototype</span></div>
+ <label>Region <select id="reg"><option value="">Utopia Planitia, 46.7°N</option><option value="zhurong">Zhurong area, 25.1°N</option><option value="arcadia">Arcadia, 39.5°N</option><option value="jezero">Jezero, 18.4°N</option></select></label>
+ <div class="seg" id="modes"><button data-mode="explore" class="on">Explore</button><button data-mode="plan">Plan marswalk</button></div>
+ <div class="seg off" id="tools"><button data-tool="hab" class="on">Hab</button><button data-tool="wp">Waypoint</button><button data-tool="ret">Return</button><button id="undo">Undo</button><button id="clr">Clear</button></div>
+</header>
+<main><canvas id="map" aria-label="Map of Utopia Planitia"></canvas><div id="tip"></div><div id="hov"></div></main>
+<aside>
+ <section><h2>Layers</h2>
+  <div class="row"><label><input type="radio" name="base" value="relief" checked> Elevation and shading</label><label><input type="radio" name="base" value="slope"> Slope</label></div>
+  <label><input type="checkbox" id="lhz" checked> Hazard shading (steep slope)</label>
+  <label><input type="checkbox" id="lcr" checked> Craters (1 km and larger)</label>
+  <label><input type="checkbox" id="lic"> Ice consistency <select id="band"></select></label>
+  <div class="row"><span>Caution from <input type="number" id="thc" value="2" step=".5" min=".5">°</span><span>Danger from <input type="number" id="thd" value="5" step=".5" min="1">°</span></div>
+  <div class="row"><span>EVA walking speed <input type="number" id="spd" value="3" step=".5" min=".5"> km/h</span></div>
+  <div class="row"><span>Local time <b id="hrl">14:00</b></span></div><input type="range" id="hr" min="0" max="24" step=".5" value="14" aria-label="Local time of sol">
+  <p class="note" id="leg"></p></section>
+ <section><h2>Resource finder</h2>
+  <select id="tgt" style="width:100%"><option value="">Off</option><option value="ice">Water-ice (SWIM 2.0)</option><option value="clay">Hydrated clays</option><option value="silica">Hydrated silica (opal)</option><option value="basalt">Basalt bedrock</option><option value="perc">Perchlorate-rich regolith</option></select>
+  <div id="tgp"></div></section>
+ <section><h2>Selected location</h2><div id="selp"></div></section>
+ <section><h2>Route</h2><div id="rtp"></div><canvas id="prof"></canvas></section>
+ <section><h2>Data sources</h2><ul id="src"></ul>
+  <p class="note">Terrain is 200 m resolution, so slopes and hazards are regional-scale and miss boulders and small scarps. Ice values show how consistent the data are with buried ice, not a measured amount. The walking-speed model is an assumption. Temperatures are estimates: a −63 °C Mars-wide baseline, −0.001 °C per metre from the window’s mean elevation, and an assumed ±20 °C daily swing (Viking landers saw 35 to 50 K daily variation). Mineral rankings other than water-ice are estimates, not maps. Prototype, not for operations.</p></section>
+</aside>
+<script>var RG=location.hash.slice(1),REG=['zhurong','arcadia','jezero'].includes(RG)?'data_'+RG:'data';document.write('<script src="'+REG+'/aresnav_data.js"><\/script>')</script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),R=3396190,rad=a=>a*Math.PI/180,deg=a=>a*180/Math.PI,NOD=-32768;
+const D=window.ARESNAV_DATA,demo=!D;let M,W,H,RES,elev,ice={},craters=[];
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+if(D){M=D.meta;W=M.width;H=M.height;RES=M.res_m;elev=new Int16Array(b64(D.elevation).buffer);
+ if(D.swim){for(const k in D.swim)ice[k]=b64(D.swim[k])}craters=D.craters||[]}
+else{M={center:{lat:46.7,lon:117.5},sources:[]};W=H=400;RES=500;elev=new Int16Array(W*H);
+ craters=[{id:'demo-1',x:-30000,y:20000,diam_m:16000},{id:'demo-2',x:25000,y:-15000,diam_m:9000},{id:'demo-3',x:5000,y:35000,diam_m:5000}];
+ for(let j=0;j<H;j++)for(let i=0;i<W;i++){const x=(i-(W-1)/2)*RES,y=((H-1)/2-j)*RES;let v=-4800+70*Math.sin(x/30000)*Math.cos(y/45000);
+  for(const c of craters){const t=Math.hypot(x-c.x,y-c.y)/(c.diam_m/2);v+=t<1?-.04*c.diam_m*(1-t*t):.012*c.diam_m*Math.exp(-(((t-1)/.12)**2))}
+  elev[j*W+i]=v}}
+const c0=M.center.lat,l0=M.center.lon,hw=W*RES/2,hh=H*RES/2,lo=M.swim?M.swim.vmin:-1,hi=M.swim?M.swim.vmax:1;
+const ll=(x,y)=>{const la=c0+deg(y/R);return[la,l0+deg(x/(R*Math.cos(rad(la))))]};
+const idx=(x,y)=>{const i=Math.round(x/RES+(W-1)/2),j=Math.round((H-1)/2-y/RES);return(i<0||j<0||i>=W||j>=H)?-1:j*W+i};
+const E=(i,j)=>{i=i<0?0:i>=W?W-1:i;j=j<0?0:j>=H?H-1:j;const v=elev[j*W+i];return v===NOD?NaN:v};
+const slope=new Float32Array(W*H);let mn=1e9,mx=-1e9;
+for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i,v=elev[k];if(v!==NOD){if(v<mn)mn=v;if(v>mx)mx=v}
+ slope[k]=deg(Math.atan(Math.hypot((E(i+1,j)-E(i-1,j))/(2*RES),(E(i,j+1)-E(i,j-1))/(2*RES))))}
+const ramp=(t,S)=>{t=Math.max(0,Math.min(1,t))*(S.length-1);const a=Math.floor(t),b=Math.min(a+1,S.length-1),f=t-a;return S[a].map((v,n)=>v+(S[b][n]-v)*f)};
+const EL=[[52,42,72],[132,72,60],[206,128,76],[244,218,170]],SL=[[43,76,126],[88,160,140],[236,204,92],[217,70,52]],HC=['#7fd4e8','#e9b44c','#e5533d'];
+const mk=f=>{const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d'),im=g.createImageData(W,H),d=im.data;
+ for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i,p=f(k,i,j);if(p){const o=k*4;d[o]=p[0];d[o+1]=p[1];d[o+2]=p[2];d[o+3]=p[3]??255}}
+ g.putImageData(im,0,0);return c};
+const relief=mk((k,i,j)=>{const v=elev[k];if(v===NOD)return[24,20,17];const c=ramp((v-mn)/(mx-mn||1),EL),a=((E(i+1,j)-E(i-1,j))+(E(i,j+1)-E(i,j-1)))/(2*RES),s=isNaN(a)?1:Math.max(.55,Math.min(1.5,1+25*a));return[c[0]*s,c[1]*s,c[2]*s]});
+const slopeL=mk(k=>{if(elev[k]===NOD)return[24,20,17];const s=slope[k];return ramp(s>=0?s/10:0,SL)});
+const st={base:'relief',haz:true,cr:true,ice:false,band:Object.keys(ice)[0]||null,mode:'explore',tool:'hab',th:{c:2,d:5},spd:3,sel:null,hover:null,an:null,route:{hab:null,wps:[],ret:null}};
+const mkHaz=()=>mk(k=>{const s=slope[k];return s>=st.th.d?[229,83,61,150]:s>=st.th.c?[233,180,76,110]:null});
+let hazL=mkHaz();const iceC={};
+const iceL=b=>iceC[b]||(iceC[b]=mk(k=>{const q=ice[b][k];if(q===255)return null;const v=lo+q/254*(hi-lo);return v>0?[127,212,232,35+190*v]:v<0?[229,83,61,35-150*v]:[160,150,140,40]}));
+const cv=$('map'),cx=cv.getContext('2d'),view={x:0,y:0,k:1};let kmin=.001,kmax=.08,ready=false;
+function rs(){const dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;cv.width=w*dpr;cv.height=h*dpr;cx.setTransform(dpr,0,0,dpr,0,0);
+ if(!ready){view.k=Math.min(w/(W*RES),h/(H*RES))*.95;kmin=view.k*.5;ready=true}draw();prof()}
+function draw(){const w=cv.clientWidth,h=cv.clientHeight,k=view.k;if(!w||!ready)return;const X=x=>w/2+(x-view.x)*k,Y=y=>h/2-(y-view.y)*k;
+ cx.fillStyle='#120f0c';cx.fillRect(0,0,w,h);const L=X(-hw),T=Y(hh),pw=W*RES*k,ph=H*RES*k;
+ cx.imageSmoothingEnabled=true;cx.drawImage(st.base==='slope'?slopeL:relief,L,T,pw,ph);if(st.haz)cx.drawImage(hazL,L,T,pw,ph);
+ if(st.ice&&st.band){cx.imageSmoothingEnabled=false;cx.drawImage(iceL(st.band),L,T,pw,ph);cx.imageSmoothingEnabled=true}
+ if(st.tgt)drawTgt(L,T,pw,ph,X,Y);
+ if(st.cr){cx.lineWidth=1.2;cx.strokeStyle='rgba(255,240,220,.7)';cx.fillStyle='rgba(255,240,220,.9)';cx.font='11px Bahnschrift,sans-serif';
+  for(const c of craters){const r=c.diam_m/2*k;if(r<2)continue;cx.beginPath();cx.arc(X(c.x),Y(c.y),r,0,7);cx.stroke();if(r>18)cx.fillText((c.diam_m/1000).toFixed(1)+' km',X(c.x)+r*.72,Y(c.y)-r*.72)}}
+ const A=st.an;if(A){cx.lineCap=cx.lineJoin='round';for(const pass of[0,1])for(let n=1;n<A.s.length;n++){const a=A.s[n-1],b=A.s[n];cx.beginPath();cx.moveTo(X(a.x),Y(a.y));cx.lineTo(X(b.x),Y(b.y));
+  if(pass===0){cx.strokeStyle='rgba(18,15,12,.9)';cx.lineWidth=6}else{cx.strokeStyle=HC[b.h];cx.lineWidth=3}cx.stroke()}}
+ const r=st.route,pin=(p,t,col,sq)=>{const x=X(p.x),y=Y(p.y);cx.beginPath();if(sq)cx.rect(x-9,y-9,18,18);else cx.arc(x,y,9,0,7);cx.fillStyle=col;cx.fill();cx.lineWidth=2;cx.strokeStyle='#120f0c';cx.stroke();
+  cx.fillStyle='#120f0c';cx.font='bold 11px Bahnschrift,sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(t,x,y+.5);cx.textAlign='left';cx.textBaseline='alphabetic'};
+ r.wps.forEach((p,n)=>pin(p,n+1,'#eadfcf'));if(r.ret)pin(r.ret,'R','#e9b44c',1);if(r.hab)pin(r.hab,'H','#7fd4e8',1);
+ if(st.sel){const x=X(st.sel.x),y=Y(st.sel.y);cx.strokeStyle='#fff';cx.lineWidth=2;cx.beginPath();cx.arc(x,y,7,0,7);cx.moveTo(x-12,y);cx.lineTo(x+12,y);cx.moveTo(x,y-12);cx.lineTo(x,y+12);cx.stroke()}
+ let m=90/k,p=10**Math.floor(Math.log10(m));m=[5,2,1].map(f=>f*p).find(v=>v<=m);const len=m*k;cx.strokeStyle=cx.fillStyle='#eadfcf';cx.lineWidth=2;cx.beginPath();
+ cx.moveTo(14,h-18);cx.lineTo(14+len,h-18);cx.moveTo(14,h-23);cx.lineTo(14,h-13);cx.moveTo(14+len,h-23);cx.lineTo(14+len,h-13);cx.stroke();
+ cx.font='11px Bahnschrift,sans-serif';cx.fillText(m>=1000?m/1000+' km':m+' m',14,h-28)}
+const loc=e=>{const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+const wld=e=>{const p=loc(e);return{x:view.x+(p.x-cv.clientWidth/2)/view.k,y:view.y-(p.y-cv.clientHeight/2)/view.k}};
+function info(p){const k=idx(p.x,p.y);if(k<0)return null;const[la,lg]=ll(p.x,p.y),v=elev[k];
+ return{k,z:v===NOD?NaN:v,s:slope[k],pos:`${Math.abs(la).toFixed(4)}°${la<0?'S':'N'}, ${lg.toFixed(4)}°E`,cr:craters.find(c=>Math.hypot(p.x-c.x,p.y-c.y)<c.diam_m/2)}}
+let drag=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,mv:false}});
+cv.addEventListener('pointermove',e=>{const p=wld(e),q=info(p);$('hov').textContent=q?`${q.pos} · ${f1(q.z,0)} m · slope ${f1(q.s)}°`:'';
+ if(drag){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>4)drag.mv=true;if(drag.mv){view.x=drag.vx-(e.clientX-drag.x)/view.k;view.y=drag.vy+(e.clientY-drag.y)/view.k;draw()}}});
+cv.addEventListener('pointerup',e=>{if(drag&&!drag.mv){const p=wld(e);if(idx(p.x,p.y)>=0){if(st.mode==='explore')st.sel=p;else plan(p);refresh()}}drag=null});
+cv.addEventListener('wheel',e=>{e.preventDefault();const w0=wld(e),p=loc(e);view.k=Math.max(kmin,Math.min(kmax,view.k*Math.exp(-e.deltaY*.0015)));
+ view.x=w0.x-(p.x-cv.clientWidth/2)/view.k;view.y=w0.y+(p.y-cv.clientHeight/2)/view.k;draw()},{passive:false});
+function plan(p){const r=st.route;if(st.tool==='ret')r.ret=p;else if(st.tool==='hab'||!r.hab){r.hab=p;if(st.tool==='hab')setTool('wp')}else r.wps.push(p)}
+const inCr=(x,y)=>craters.some(c=>Math.hypot(x-c.x,y-c.y)<c.diam_m*.55);
+function analyze(){const r=st.route;if(!r.hab||!(r.wps.length||r.ret))return null;const P=[r.hab,...r.wps,r.ret||r.hab],{c,d}=st.th,s=[];let base=0;
+ const add=(x,y,dd)=>{const k=idx(x,y),z=k<0||elev[k]===NOD?NaN:elev[k],sl=k<0?NaN:slope[k],cr=inCr(x,y);s.push({x,y,d:dd,z,sl,cr,h:Math.max(sl>=d?2:sl>=c?1:0,cr?1:0)})};
+ add(P[0].x,P[0].y,0);
+ for(let q=1;q<P.length;q++){const a=P[q-1],b=P[q],L=Math.hypot(b.x-a.x,b.y-a.y),n=Math.max(1,Math.ceil(L/RES));for(let m=1;m<=n;m++){const f=m/n;add(a.x+(b.x-a.x)*f,a.y+(b.y-a.y)*f,base+L*f)}base+=L}
+ let d3=0,t=0,gain=0,loss=0,mxs=0,lc=0,ld=0,cc=0;
+ for(let n=1;n<s.length;n++){const a=s[n-1],b=s[n],ds=b.d-a.d;if(!ds)continue;const dz=isNaN(a.z)||isNaN(b.z)?0:b.z-a.z,v=st.spd*Math.exp(-3.5*(Math.abs(dz/ds+.05)-.05))*1000/3600,l3=Math.hypot(ds,dz);
+  d3+=l3;t+=l3/v;if(dz>0)gain+=dz;else loss-=dz;if(b.sl>mxs)mxs=b.sl;if(b.h===2)ld+=ds;else if(b.h===1)lc+=ds;if(b.cr&&!a.cr)cc++}
+ return{s,dist:base,d3,t,gain,loss,mxs,lc,ld,cc}}
+const f1=(v,n=1)=>isNaN(v)?'–':v.toFixed(n),hm=s=>{const m=Math.round(s/60);return Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min'};
+const iceTxt=(b,k)=>{const q=ice[b][k];if(q===255)return'no data';const v=lo+q/254*(hi-lo);return v.toFixed(2)+(v>.2?' (leans ice-consistent)':v<-.2?' (leans inconsistent)':' (no clear signal)')};
+function side(){const p=st.sel,q=p&&info(p);
+ $('selp').innerHTML=q?`<dl><dt>Position</dt><dd>${q.pos}</dd><dt>Offset</dt><dd>${(p.x/1000).toFixed(1)} km E, ${(p.y/1000).toFixed(1)} km N of centre</dd><dt>Elevation</dt><dd>${f1(q.z,0)} m</dd><dt>Slope (${RES} m scale)</dt><dd>${f1(q.s)}°</dd><dt>Est. surface temp</dt><dd>${tempTxt(q.z)}</dd>${tgtRow(q.k)}${q.cr?`<dt>Crater</dt><dd>inside ${q.cr.id}, ${(q.cr.diam_m/1000).toFixed(1)} km wide</dd>`:''}${Object.keys(ice).map(b=>`<dt>Ice ${b}</dt><dd>${iceTxt(b,q.k)}</dd>`).join('')}</dl>`:'<p class="dim">Click the map in Explore mode to inspect a location.</p>';
+ const A=st.an,r=st.route;
+ $('rtp').innerHTML=A?`<dl><dt>Stops</dt><dd>Hab, ${r.wps.length} waypoint${r.wps.length===1?'':'s'}, return${r.ret?'':' to Hab'}</dd><dt>Distance</dt><dd>${(A.dist/1000).toFixed(1)} km (${(A.d3/1000).toFixed(1)} km along the surface)</dd><dt>EVA time</dt><dd>${hm(A.t)} at ${st.spd} km/h</dd><dt>Elevation</dt><dd>+${A.gain.toFixed(0)} m / −${A.loss.toFixed(0)} m</dd><dt>Steepest slope</dt><dd>${f1(A.mxs)}°</dd><dt><span class="sw" style="background:${HC[1]}"></span>Caution</dt><dd>${(A.lc/1000).toFixed(1)} km</dd><dt><span class="sw" style="background:${HC[2]}"></span>Danger</dt><dd>${(A.ld/1000).toFixed(1)} km</dd><dt>Crater crossings</dt><dd>${A.cc}</dd></dl>`:'<p class="dim">Switch to Plan marswalk, place the Hab, then add waypoints. Return defaults to the Hab.</p>'}
+function prof(){const c=$('prof'),g=c.getContext('2d'),dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;c.width=w*dpr;c.height=h*dpr;g.setTransform(dpr,0,0,dpr,0,0);g.font='10px Bahnschrift,sans-serif';g.fillStyle='#a89a86';
+ const A=st.an;if(!A){g.fillText('Elevation profile appears once a route exists.',6,16);return}
+ const zs=A.s.map(q=>q.z).filter(v=>!isNaN(v)),a=Math.min(...zs),b=Math.max(...zs),pad=(b-a)*.15||5,y0=a-pad,y1=b+pad,X=d=>6+d/A.dist*(w-12),Y=v=>h-14-(v-y0)/(y1-y0)*(h-26);let pv=null;
+ for(const q of A.s){if(isNaN(q.z))continue;if(pv){g.beginPath();g.moveTo(X(pv.d),Y(pv.z));g.lineTo(X(q.d),Y(q.z));g.strokeStyle=HC[q.h];g.lineWidth=2.5;g.stroke()}pv=q}
+ g.fillText(Math.round(b)+' m',6,10);g.fillText(Math.round(a)+' m',6,h-3);g.textAlign='right';g.fillText((A.dist/1000).toFixed(1)+' km',w-6,h-3);g.textAlign='left'}
+/* ---- resource finder, temperature, region switcher ---- */
+st.tgt='';st.hr=14;let TOP=[],EJ=null,IC=null;const SC={},TL={};
+const TM={base:-63,lapse:-.001,amp:20},zref=(mn+mx)/2,hmm=h=>String(Math.floor(h)).padStart(2,'0')+(h%1?':30':':00');
+const tmp=z=>TM.base+TM.lapse*(z-zref)+TM.amp*Math.cos(2*Math.PI*(st.hr-14)/24);
+const tempTxt=z=>{if(isNaN(z))return'–';const b=TM.base+TM.lapse*(z-zref);return`${tmp(z).toFixed(1)} °C at ${hmm(st.hr)} (day range ${(b-TM.amp).toFixed(0)} to ${(b+TM.amp).toFixed(0)} °C)`};
+const TG={ice:{n:'Water-ice (SWIM 2.0)',tag:'Data-derived',col:[127,212,232],note:'Mean SWIM 2.0 ice consistency across the loaded depth bands, ranked within this window. Consistency is not an ice amount.'},
+ clay:{n:'Hydrated clays',tag:'Estimate',col:[214,150,230],note:'Favours the ejecta of larger craters, which can excavate buried hydrated minerals, plus gentle ground for access. Not a mineral map.'},
+ silica:{n:'Hydrated silica (opal)',tag:'Estimate, one real detection',col:[255,214,102],note:'Favours shallow-ice consistency and crater ejecta. The only real detection here is Zhurong’s (diamond marker); orbiters did not see it at that site.'},
+ basalt:{n:'Basalt bedrock',tag:'Estimate',col:[170,170,200],note:'Favours steeper ground and crater rims, where rock is more likely exposed.'},
+ perc:{n:'Perchlorate-rich regolith',tag:'Warning, not mapped',note:'Not mapped from orbit in this dataset. Treat all regolith as possibly perchlorate-bearing: process soil before using it for water or life support, and keep dust out of the Hab.'}};
+const xy=(la,lg)=>[R*rad(lg-l0)*Math.cos(rad(la)),R*rad(la-c0)];
+const DET=[{la:25.066,lg:109.925,txt:'◆ Hydrated sulfate/silica in bright-toned duricrust, seen by the Zhurong rover (Liu et al., 2022, doi:10.1126/sciadv.abn8555). Position approximate.'},...((D&&D.detections)||[])]
+ .map(d=>{const[x,y]=xy(d.la,d.lg);return{...d,x,y}}).filter(d=>Math.abs(d.x)<hw&&Math.abs(d.y)<hh);
+function prep(){if(EJ)return;EJ=new Float32Array(W*H);IC=new Float32Array(W*H).fill(NaN);const bands=Object.keys(ice);
+ for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i,x=(i-(W-1)/2)*RES,y=((H-1)/2-j)*RES;let e=0;
+  for(const c of craters){const t=Math.hypot(x-c.x,y-c.y)/(c.diam_m/2);if(t>4)continue;const w=Math.min(1,c.diam_m/15000)*(t<1?.5:Math.exp(-(t-1)*1.2));if(w>e)e=w}EJ[k]=e;
+  if(bands.length){let s=0,n=0;for(const b of bands){const q=ice[b][k];if(q!==255){s+=lo+q/254*(hi-lo);n++}}if(n)IC[k]=(s/n+1)/2}}}
+function score(key){if(SC[key])return SC[key];prep();const a=new Float32Array(W*H).fill(NaN);let a0=1e9,a1=-1e9;
+ for(let k=0;k<W*H;k++){if(elev[k]===NOD)continue;const fl=1-Math.min(1,slope[k]/5),sp=Math.min(1,slope[k]/4),e=EJ[k],c=IC[k];let v;
+  if(key==='ice')v=c;else if(key==='clay')v=.65*e+.35*fl;else if(key==='silica')v=isNaN(c)?.6*e+.4*fl:.5*c+.3*e+.2*fl;else v=.6*sp+.4*e;
+  if(isNaN(v))continue;a[k]=v;if(v<a0)a0=v;if(v>a1)a1=v}
+ const sc=a1-a0||1;for(let k=0;k<a.length;k++)if(a[k]===a[k])a[k]=(a[k]-a0)/sc;return SC[key]=a}
+const tgtL=()=>TL[st.tgt]||(TL[st.tgt]=(a=>mk(k=>a[k]>=0?[...TG[st.tgt].col,25+200*a[k]]:null))(score(st.tgt)));
+function rank(key){const a=score(key),cs=Math.round(10000/RES),out=[];
+ for(let cj=0;cj<H/cs;cj++)for(let ci=0;ci<W/cs;ci++){let s=0,n=0;for(let j=cj*cs;j<Math.min(H,cj*cs+cs);j++)for(let i=ci*cs;i<Math.min(W,ci*cs+cs);i++){const v=a[j*W+i];if(v>=0){s+=v;n++}}
+  if(n>cs*cs/2)out.push({s:s/n,x:((ci+.5)*cs-.5-(W-1)/2)*RES,y:((H-1)/2-((cj+.5)*cs-.5))*RES})}
+ out.sort((p,q)=>q.s-p.s);const pick=[];for(const c of out){if(pick.every(p=>Math.hypot(p.x-c.x,p.y-c.y)>25000))pick.push(c);if(pick.length===5)break}return pick}
+function drawTgt(L,T,pw,ph,X,Y){if(TG[st.tgt].col){cx.imageSmoothingEnabled=false;cx.drawImage(tgtL(),L,T,pw,ph);cx.imageSmoothingEnabled=true}
+ TOP.forEach((p,n)=>{const x=X(p.x),y=Y(p.y);cx.beginPath();cx.arc(x,y,10,0,7);cx.fillStyle='rgba(255,214,102,.95)';cx.fill();cx.lineWidth=2;cx.strokeStyle='#120f0c';cx.stroke();
+  cx.fillStyle='#120f0c';cx.font='bold 11px Bahnschrift,sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(n+1,x,y+.5);cx.textAlign='left';cx.textBaseline='alphabetic'});
+ if(st.tgt==='silica')DET.forEach(d=>{const x=X(d.x),y=Y(d.y);cx.beginPath();cx.moveTo(x,y-11);cx.lineTo(x+9,y);cx.lineTo(x,y+11);cx.lineTo(x-9,y);cx.closePath();cx.fillStyle='#ffd666';cx.fill();cx.lineWidth=2;cx.strokeStyle='#120f0c';cx.stroke()})}
+const tgtRow=k=>{if(st.tgt==='perc')return'<dt>Perchlorate</dt><dd>assume present</dd>';if(!st.tgt)return'';const v=score(st.tgt)[k];return`<dt>${TG[st.tgt].n}</dt><dd>${v>=0?Math.round(v*100)+' / 100 (relative)':'no score'}</dd>`};
+function tgp(){const g=TG[st.tgt];if(!g){$('tgp').innerHTML='<p class="dim">Pick a target to shade the map and rank the best sites in this window.</p>';return}
+ let h=`<p class="${st.tgt==='perc'?'warn':''}"><b>${g.tag}.</b> ${g.note}</p>`;
+ if(st.tgt!=='perc'){if(!TOP.length)h+='<p class="dim">No ranked sites: the data this target needs is not loaded (for ice, run the prep script with --swim).</p>';
+  else h+='<ol>'+TOP.map((p,n)=>`<li><button class="lk" data-i="${n}">Site ${n+1}: ${Math.round(p.s*100)}/100, ${tmp(elev[idx(p.x,p.y)]).toFixed(0)} °C, ${(p.x/1000).toFixed(0)} km E, ${(p.y/1000).toFixed(0)} km N</button></li>`).join('')+'</ol><p class="note">Scores rank sites relative to this window only.</p>'}
+ if(st.tgt==='silica'&&DET.length)h+='<p>'+DET.map(d=>d.txt).join('<br>')+'</p>';$('tgp').innerHTML=h}
+function setTgt(v){st.tgt=v;TOP=v&&TG[v].col?rank(v):[];tgp();side();draw()}
+$('tgt').onchange=e=>setTgt(e.target.value);
+$('tgp').onclick=e=>{const b=e.target.closest('[data-i]');if(!b)return;const p=TOP[+b.dataset.i];st.sel={x:p.x,y:p.y};view.x=p.x;view.y=p.y;refresh()};
+$('hr').oninput=e=>{st.hr=+e.target.value;$('hrl').textContent=hmm(st.hr);side();tgp()};
+$('reg').value=REG.replace('data_','').replace(/^data$/,'');$('reg').onchange=e=>{location.hash=e.target.value;location.reload()};
+tgp();
+const tips=()=>{$('tip').textContent=st.mode==='plan'?(st.route.hab?'Click to add waypoints. Choose Return to set the end point.':'Click to place the Hab base.'):'Drag to pan, scroll to zoom, click to inspect a location.'};
+function refresh(){st.an=analyze();side();prof();tips();draw()}
+function setTool(t){st.tool=t;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t))}
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{st.mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));$('tools').classList.toggle('off',st.mode!=='plan');tips()});
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+$('undo').onclick=()=>{const r=st.route;if(r.ret)r.ret=null;else if(r.wps.length)r.wps.pop();else r.hab=null;if(!r.hab)setTool('hab');refresh()};
+$('clr').onclick=()=>{st.route={hab:null,wps:[],ret:null};setTool('hab');refresh()};
+document.querySelectorAll('[name=base]').forEach(i=>i.onchange=()=>{st.base=i.value;draw()});
+$('lhz').onchange=e=>{st.haz=e.target.checked;draw()};$('lcr').onchange=e=>{st.cr=e.target.checked;draw()};$('lic').onchange=e=>{st.ice=e.target.checked;draw()};
+$('band').onchange=e=>{st.band=e.target.value;draw()};$('spd').onchange=e=>{st.spd=Math.max(.5,+e.target.value||3);refresh()};
+const thr=()=>{let c=Math.max(.1,+$('thc').value||2),d=+$('thd').value||5;if(d<=c){d=c+.5;$('thd').value=d}st.th={c,d};hazL=mkHaz();refresh()};$('thc').onchange=thr;$('thd').onchange=thr;
+const keys=Object.keys(ice);$('band').innerHTML=keys.length?keys.map(k=>`<option>${k}</option>`).join(''):'<option>no layers</option>';if(!keys.length){$('lic').disabled=true;$('band').disabled=true}
+$('leg').textContent=`Elevation colours span ${mn} to ${mx} m. Slope colours run from 0° (blue) to 10° (red).`;
+$('src').innerHTML=demo?`<li><b>Demo terrain</b> (synthetic). ${REG}/aresnav_data.js was not found. Keep index.html next to that folder. For the Zhurong area run: python prep_utopia_data.py --lat 25.1 --lon 109.9 --out data_zhurong (add --swim as before).</li>`:(M.sources||[]).map(s=>`<li><b>${s.layer}</b>: ${s.name}<br><span class="dim">${s.citation} · ${s.license}</span></li>`).join('');
+new ResizeObserver(rs).observe(cv.parentElement);side();prof();tips();
+})();
+</script></body></html>
