@@ -73,6 +73,4 @@ Python 3, NumPy, rasterio/GDAL for data processing; HTML5 Canvas, vanilla JavaSc
 
 Parts of the code and documentation were written with help from Claude (Anthropic). Data choices were checked against the sources above.
 
-## License
 
-[Choose a license for your own code. Note that the HRSC elevation data is CC BY-SA 3.0 IGO, which is share-alike.]" 
